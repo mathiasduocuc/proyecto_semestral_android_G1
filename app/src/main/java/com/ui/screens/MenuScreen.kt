@@ -24,7 +24,9 @@ fun MenuScreen(
     onRegistrarClientes: () -> Unit,
     onVerRegistros: () -> Unit,
     onEstadisticas: () -> Unit,
-    onCerrarSesion: () -> Unit
+    onCerrarSesion: () -> Unit,
+    modoOscuro: Boolean,
+    onCambiarModo: () -> Unit
 ) {
 
     Column(
@@ -88,6 +90,13 @@ fun MenuScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Estadisticas")
+                }
+
+                OutlinedButton(
+                    onClick = onCambiarModo,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (modoOscuro) "Cambiar a modo claro" else "Cambiar a modo oscuro")
                 }
 
                 OutlinedButton(

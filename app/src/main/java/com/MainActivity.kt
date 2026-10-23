@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.ui.screens.FormularioScreen
 import com.ui.screens.LoginScreen
 import com.ui.screens.MenuScreen
+import com.ui.theme.MiRegistroTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -34,122 +35,137 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
 
+        val preferencias = getSharedPreferences("preferencias_app", MODE_PRIVATE)
+
         setContent {
             var pantallaActual by rememberSaveable {
                 mutableStateOf("login")
             }
+            var modoOscuro by rememberSaveable {
+                mutableStateOf(preferencias.getBoolean("modo_oscuro", false))
+            }
 
             MaterialTheme {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
+                MiRegistroTheme(darkTheme = modoOscuro, dynamicColor = false) {
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    ) {
-                        when (pantallaActual) {
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize()
+                    ) { innerPadding ->
 
-                            "login" -> {
-                                LoginScreen(
-                                    onLoginExitoso = {
-                                        pantallaActual = "menu"
-                                    }
-                                )
-                            }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding)
+                        ) {
+                            when (pantallaActual) {
 
-                            "menu" -> {
-                                MenuScreen(
-                                    onRegistrarClientes = {
-                                        pantallaActual = "formulario"
-                                    },
-                                    onVerRegistros = {
-                                        pantallaActual = "registros"
-                                    },
-                                    onEstadisticas = {
-                                        pantallaActual = "estadisticas"
-                                    },
-                                    onCerrarSesion = {
-                                        pantallaActual = "login"
-                                    }
-                                )
-                            }
-
-                            "formulario" -> {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(
-                                        onClick = {
+                                "login" -> {
+                                    LoginScreen(
+                                        onLoginExitoso = {
                                             pantallaActual = "menu"
+                                        }
+                                    )
+                                }
+
+                                "menu" -> {
+                                    MenuScreen(
+                                        onRegistrarClientes = {
+                                            pantallaActual = "formulario"
                                         },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp)
-                                    ) {
-                                        Text("Volver al menú")
-                                    }
+                                        onVerRegistros = {
+                                            pantallaActual = "registros"
+                                        },
+                                        onEstadisticas = {
+                                            pantallaActual = "estadisticas"
+                                        },
+                                        onCerrarSesion = {
+                                            pantallaActual = "login"
+                                        },
+                                        modoOscuro = modoOscuro,
+                                        onCambiarModo = {
+                                            modoOscuro = !modoOscuro
+                                            preferencias.edit()
+                                                .putBoolean("modo_oscuro", modoOscuro)
+                                                .apply()
+                                        }
+                                    )
+                                }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxWidth()
+                                "formulario" -> {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        FormularioScreen()
+                                        Button(
+                                            onClick = {
+                                                pantallaActual = "menu"
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(8.dp)
+                                        ) {
+                                            Text("Volver al menú")
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxWidth()
+                                        ) {
+                                            FormularioScreen()
+                                        }
                                     }
                                 }
-                            }
 
-                            "registros" -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(24.dp),
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "Ver registros",
-                                        style = MaterialTheme.typography.headlineMedium
-                                    )
-
-                                    Text(
-                                        text = "Esta pantalla se implementará más adelante"
-                                    )
-
-                                    Button(
-                                        onClick = {
-                                            pantallaActual = "menu"
-                                        }
+                                "registros" -> {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(24.dp),
+                                        verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("Volver al menú")
+                                        Text(
+                                            text = "Ver registros",
+                                            style = MaterialTheme.typography.headlineMedium
+                                        )
+
+                                        Text(
+                                            text = "Esta pantalla se implementará más adelante"
+                                        )
+
+                                        Button(
+                                            onClick = {
+                                                pantallaActual = "menu"
+                                            }
+                                        ) {
+                                            Text("Volver al menú")
+                                        }
                                     }
                                 }
-                            }
 
-                            "estadisticas" -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(24.dp),
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "Estadísticas",
-                                        style = MaterialTheme.typography.headlineMedium
-                                    )
-
-                                    Text(
-                                        text = "Esta pantalla se implementará más adelante"
-                                    )
-
-                                    Button(
-                                        onClick = {
-                                            pantallaActual = "menu"
-                                        }
+                                "estadisticas" -> {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(24.dp),
+                                        verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("Volver al menú")
+                                        Text(
+                                            text = "Estadísticas",
+                                            style = MaterialTheme.typography.headlineMedium
+                                        )
+
+                                        Text(
+                                            text = "Esta pantalla se implementará más adelante"
+                                        )
+
+                                        Button(
+                                            onClick = {
+                                                pantallaActual = "menu"
+                                            }
+                                        ) {
+                                            Text("Volver al menú")
+                                        }
                                     }
                                 }
                             }
