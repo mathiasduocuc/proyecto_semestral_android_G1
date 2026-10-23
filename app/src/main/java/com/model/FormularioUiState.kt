@@ -1,7 +1,7 @@
 package com.model
 
 enum class ClasificacionCliente(val etiqueta: String) {
-    TRANSITO("Tránsito"),
+    TRANSITO("Transito"),
     VISITA("Visita"),
     NO_DETERMINADO("No determinado")
 }
