@@ -1,4 +1,3 @@
-
 package com.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -36,10 +35,13 @@ fun LoginScreen(
     onLoginExitoso: () -> Unit
 ) {
     val estado by viewModel.uiState.collectAsState()
-
-    var mostrarContrasena by remember {
-        mutableStateOf(false)
-    }
+    var mostrarContrasena by remember { mutableStateOf(false) }
+    var mostrarRecuperacion by remember { mutableStateOf(false) }
+    var usuarioRecuperacion by remember { mutableStateOf("") }
+    var nuevaContrasena by remember { mutableStateOf("") }
+    var confirmarContrasena by remember { mutableStateOf("") }
+    var mensajeRecuperacion by remember { mutableStateOf("") }
+    var recuperacionExitosa by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -59,105 +61,260 @@ fun LoginScreen(
         )
 
         Text(
-            text = "Inicio de sesion",
+            text = if (mostrarRecuperacion) "Recuperar contrasena" else "Inicio de sesion",
             style = MaterialTheme.typography.titleMedium
         )
 
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-
+        Card(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (!mostrarRecuperacion) {
 
-                OutlinedTextField(
-                    value = estado.usuario,
-                    onValueChange = {
-                        viewModel.onUsuarioChange(it)
-                    },
-                    label = {
-                        Text("Usuario")
-                    },
-                    singleLine = true,
-                    isError = estado.errorUsuario != null,
-                    supportingText = {
-                        estado.errorUsuario?.let {
-                            Text(it)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = estado.contrasena,
-                    onValueChange = {
-                        viewModel.onContrasenaChange(it)
-                    },
-                    label = {
-                        Text("Contrasena")
-                    },
-                    singleLine = true,
-                    isError = estado.errorContrasena != null,
-                    visualTransformation = if (mostrarContrasena) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password
-                    ),
-                    trailingIcon = {
-                        TextButton(
-                            onClick = {
-                                mostrarContrasena = !mostrarContrasena
+                    OutlinedTextField(
+                        value = estado.usuario,
+                        onValueChange = {
+                            viewModel.onUsuarioChange(it)
+                        },
+                        label = {
+                            Text("Usuario")
+                        },
+                        singleLine = true,
+                        isError = estado.errorUsuario != null,
+                        supportingText = {
+                            estado.errorUsuario?.let {
+                                Text(it)
                             }
-                        ) {
-                            Text(
-                                text = if (mostrarContrasena) {
-                                    "Ocultar"
-                                } else {
-                                    "Mostrar"
-                                }
-                            )
-                        }
-                    },
-                    supportingText = {
-                        estado.errorContrasena?.let {
-                            Text(it)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (estado.mensaje.isNotEmpty()) {
-
-                    Text(
-                        text = estado.mensaje,
-                        color = if (estado.inicioExitoso) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        }
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
 
-                Button(
-                    onClick = {
-                        viewModel.iniciarSesion()
+                    OutlinedTextField(
+                        value = estado.contrasena,
+                        onValueChange = {
+                            viewModel.onContrasenaChange(it)
+                        },
+                        label = {
+                            Text("Contrasena")
+                        },
+                        singleLine = true,
+                        isError = estado.errorContrasena != null,
+                        visualTransformation =
+                            if (mostrarContrasena) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password
+                        ),
+                        trailingIcon = {
 
-                        if (viewModel.uiState.value.inicioExitoso) {
-                            onLoginExitoso()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Iniciar sesion")
+                            TextButton(
+                                onClick = {
+                                    mostrarContrasena =
+                                        !mostrarContrasena
+                                }
+                            ) {
+                                Text(
+                                    if (mostrarContrasena) {
+                                        "Ocultar"
+                                    } else {
+                                        "Mostrar"
+                                    }
+                                )
+                            }
+                        },
+                        supportingText = {
+                            estado.errorContrasena?.let {
+                                Text(it)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (estado.mensaje.isNotEmpty()) {
+
+                        Text(
+                            text = estado.mensaje,
+                            color = if (estado.inicioExitoso) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            }
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+
+                            viewModel.iniciarSesion()
+
+                            if (
+                                viewModel.uiState.value.inicioExitoso
+                            ) {
+                                onLoginExitoso()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Iniciar sesion")
+                    }
+
+                    TextButton(
+                        onClick = {
+                            mostrarRecuperacion = true
+
+                            usuarioRecuperacion =
+                                estado.usuario
+
+                            nuevaContrasena = ""
+                            confirmarContrasena = ""
+                            mensajeRecuperacion = ""
+                            recuperacionExitosa = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("¿Haz olvidado tu contrasena?")
+                    }
+
+                } else {
+                    Text(
+                        text = "Ingresa tu usuario y establece una nueva contraseña.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    OutlinedTextField(
+                        value = usuarioRecuperacion,
+                        onValueChange = {
+                            usuarioRecuperacion = it
+                        },
+                        label = {
+                            Text("Usuario")
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = nuevaContrasena,
+                        onValueChange = {
+                            nuevaContrasena = it
+                        },
+                        label = {
+                            Text("Nueva contrasena")
+                        },
+                        singleLine = true,
+                        visualTransformation =
+                            PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = confirmarContrasena,
+                        onValueChange = {
+                            confirmarContrasena = it
+                        },
+                        label = {
+                            Text("Confirmar contrasena")
+                        },
+                        singleLine = true,
+                        visualTransformation =
+                            PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (mensajeRecuperacion.isNotEmpty()) {
+
+                        Text(
+                            text = mensajeRecuperacion,
+                            color = if (recuperacionExitosa) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            }
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+
+                            when {
+
+                                usuarioRecuperacion.isBlank() -> {
+                                    recuperacionExitosa = false
+                                    mensajeRecuperacion =
+                                        "Ingrese su nombre de usuario"
+                                }
+
+                                nuevaContrasena.length < 4 -> {
+                                    recuperacionExitosa = false
+                                    mensajeRecuperacion =
+                                        "La contrasena debe tener al menos 4 caracteres"
+                                }
+
+                                nuevaContrasena != confirmarContrasena -> {
+                                    recuperacionExitosa = false
+                                    mensajeRecuperacion =
+                                        "Las contrasenas no son iguales"
+                                }
+
+                                else -> {
+
+                                    val resultado =
+                                        viewModel.recuperarContrasena(
+                                            usuarioRecuperacion.trim(),
+                                            nuevaContrasena
+                                        )
+
+                                    recuperacionExitosa =
+                                        resultado.first
+
+                                    mensajeRecuperacion =
+                                        resultado.second
+
+                                    if (resultado.first) {
+                                        viewModel.onUsuarioChange(
+                                            usuarioRecuperacion.trim()
+                                        )
+                                        viewModel.onContrasenaChange("")
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cambiar contrasena")
+                    }
+
+                    TextButton(
+                        onClick = {
+
+                            mostrarRecuperacion = false
+
+                            mensajeRecuperacion = ""
+                            recuperacionExitosa = false
+
+                            nuevaContrasena = ""
+                            confirmarContrasena = ""
+
+                            mostrarContrasena = false
+
+                            viewModel.onContrasenaChange("")
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Regresar al inicio de sesion")
+                    }
                 }
             }
         }
