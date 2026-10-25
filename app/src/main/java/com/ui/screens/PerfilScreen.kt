@@ -1,0 +1,251 @@
+
+package com.ui.screens
+
+import android.content.Context
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import com.viewmodel.LoginViewModel
+
+@Composable
+fun PerfilScreen(
+    correo: String,
+    rol: String,
+    loginViewModel: LoginViewModel,
+    onVolver: () -> Unit
+) {
+
+    val context = LocalContext.current
+
+    val preferencias = remember(context) {
+        context.getSharedPreferences(
+            "perfiles_usuarios",
+            Context.MODE_PRIVATE
+        )
+    }
+
+    val claveNombre = "nombre_$correo"
+    val claveTelefono = "telefono_$correo"
+
+    var nombre by remember(correo) {
+        mutableStateOf(
+            preferencias.getString(claveNombre, "") ?: ""
+        )
+    }
+
+    var telefono by remember(correo) {
+        mutableStateOf(
+            preferencias.getString(claveTelefono, "") ?: ""
+        )
+    }
+
+    var contrasenaActual by remember {
+        mutableStateOf("")
+    }
+
+    var contrasenaNueva by remember {
+        mutableStateOf("")
+    }
+
+    var mensaje by remember {
+        mutableStateOf("")
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Text(
+            text = "Mi perfil",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                Text(
+                    text = "Informacion personal",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Text("Correo: $correo")
+
+                Text("Rol: $rol")
+
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = {
+                        nombre = it
+                        mensaje = ""
+                    },
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = telefono,
+                    onValueChange = {
+                        telefono = it
+                        mensaje = ""
+                    },
+                    label = { Text("Telefono") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = {
+
+                        when {
+
+                            nombre.isBlank() -> {
+                                mensaje = "Ingrese su nombre"
+                            }
+
+                            telefono.isBlank() -> {
+                                mensaje = "Ingrese su telefono"
+                            }
+
+                            !telefono.all { it.isDigit() } -> {
+                                mensaje = "El telefono solo debe contener numeros"
+                            }
+
+                            telefono.length < 8 -> {
+                                mensaje = "Ingrese un telefono valido"
+                            }
+
+                            else -> {
+
+                                preferencias.edit()
+                                    .putString(
+                                        claveNombre,
+                                        nombre.trim()
+                                    )
+                                    .putString(
+                                        claveTelefono,
+                                        telefono.trim()
+                                    )
+                                    .apply()
+
+                                mensaje = "Datos guardados correctamente"
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Guardar cambios")
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                Text(
+                    text = "Cambiar contrasena",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                OutlinedTextField(
+                    value = contrasenaActual,
+                    onValueChange = {
+                        contrasenaActual = it
+                    },
+                    label = { Text("Contrasena actual") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = contrasenaNueva,
+                    onValueChange = {
+                        contrasenaNueva = it
+                    },
+                    label = { Text("Nueva contrasena") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = {
+                        val resultado = loginViewModel.cambiarContrasena(
+                            contrasenaActual = contrasenaActual,
+                            nuevaContrasena = contrasenaNueva
+                        )
+
+                        mensaje = resultado.second
+
+                        if (resultado.first) {
+                            contrasenaActual = ""
+                            contrasenaNueva = ""
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cambiar contrasena")
+                }
+            }
+        }
+
+        if (mensaje.isNotBlank()) {
+
+            Text(
+                text = mensaje,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+        OutlinedButton(
+            onClick = onVolver,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Volver al menu")
+        }
+    }
+}

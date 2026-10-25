@@ -1,3 +1,4 @@
+
 package com.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -7,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -34,10 +37,12 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     onLoginExitoso: () -> Unit
 ) {
+
     val estado by viewModel.uiState.collectAsState()
+
     var mostrarContrasena by remember { mutableStateOf(false) }
     var mostrarRecuperacion by remember { mutableStateOf(false) }
-    var usuarioRecuperacion by remember { mutableStateOf("") }
+    var correoRecuperacion by remember { mutableStateOf("") }
     var nuevaContrasena by remember { mutableStateOf("") }
     var confirmarContrasena by remember { mutableStateOf("") }
     var mensajeRecuperacion by remember { mutableStateOf("") }
@@ -46,6 +51,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -56,22 +62,28 @@ fun LoginScreen(
             style = MaterialTheme.typography.headlineLarge
         )
 
-        Spacer(
-            modifier = Modifier.height(8.dp)
-        )
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = if (mostrarRecuperacion) "Recuperar contrasena" else "Inicio de sesion",
+            text = if (mostrarRecuperacion) {
+                "Recuperar contrasena"
+            } else {
+                "Inicio de sesion"
+            },
             style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+
                 if (!mostrarRecuperacion) {
 
                     OutlinedTextField(
@@ -80,8 +92,11 @@ fun LoginScreen(
                             viewModel.onUsuarioChange(it)
                         },
                         label = {
-                            Text("Usuario")
+                            Text("Correo electronico")
                         },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email
+                        ),
                         singleLine = true,
                         isError = estado.errorUsuario != null,
                         supportingText = {
@@ -102,21 +117,18 @@ fun LoginScreen(
                         },
                         singleLine = true,
                         isError = estado.errorContrasena != null,
-                        visualTransformation =
-                            if (mostrarContrasena) {
-                                VisualTransformation.None
-                            } else {
-                                PasswordVisualTransformation()
-                            },
+                        visualTransformation = if (mostrarContrasena) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password
                         ),
                         trailingIcon = {
-
                             TextButton(
                                 onClick = {
-                                    mostrarContrasena =
-                                        !mostrarContrasena
+                                    mostrarContrasena = !mostrarContrasena
                                 }
                             ) {
                                 Text(
@@ -153,9 +165,7 @@ fun LoginScreen(
 
                             viewModel.iniciarSesion()
 
-                            if (
-                                viewModel.uiState.value.inicioExitoso
-                            ) {
+                            if (viewModel.uiState.value.inicioExitoso) {
                                 onLoginExitoso()
                             }
                         },
@@ -166,10 +176,10 @@ fun LoginScreen(
 
                     TextButton(
                         onClick = {
+
                             mostrarRecuperacion = true
 
-                            usuarioRecuperacion =
-                                estado.usuario
+                            correoRecuperacion = estado.usuario
 
                             nuevaContrasena = ""
                             confirmarContrasena = ""
@@ -178,23 +188,27 @@ fun LoginScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("¿Haz olvidado tu contrasena?")
+                        Text("Olvidaste tu contrasena?")
                     }
 
                 } else {
+
                     Text(
-                        text = "Ingresa tu usuario y establece una nueva contraseña.",
+                        text = "Ingresa tu correo electronico para recuperar tu contrasena.",
                         style = MaterialTheme.typography.bodyMedium
                     )
 
                     OutlinedTextField(
-                        value = usuarioRecuperacion,
+                        value = correoRecuperacion,
                         onValueChange = {
-                            usuarioRecuperacion = it
+                            correoRecuperacion = it
                         },
                         label = {
-                            Text("Usuario")
+                            Text("Correo electronico")
                         },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email
+                        ),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -208,8 +222,7 @@ fun LoginScreen(
                             Text("Nueva contrasena")
                         },
                         singleLine = true,
-                        visualTransformation =
-                            PasswordVisualTransformation(),
+                        visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password
                         ),
@@ -225,8 +238,7 @@ fun LoginScreen(
                             Text("Confirmar contrasena")
                         },
                         singleLine = true,
-                        visualTransformation =
-                            PasswordVisualTransformation(),
+                        visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password
                         ),
@@ -250,10 +262,19 @@ fun LoginScreen(
 
                             when {
 
-                                usuarioRecuperacion.isBlank() -> {
+                                correoRecuperacion.isBlank() -> {
                                     recuperacionExitosa = false
                                     mensajeRecuperacion =
-                                        "Ingrese su nombre de usuario"
+                                        "Ingrese su correo electronico"
+                                }
+
+                                !android.util.Patterns.EMAIL_ADDRESS
+                                    .matcher(correoRecuperacion.trim())
+                                    .matches() -> {
+
+                                    recuperacionExitosa = false
+                                    mensajeRecuperacion =
+                                        "Ingrese un correo electronico valido"
                                 }
 
                                 nuevaContrasena.length < 4 -> {
@@ -265,27 +286,25 @@ fun LoginScreen(
                                 nuevaContrasena != confirmarContrasena -> {
                                     recuperacionExitosa = false
                                     mensajeRecuperacion =
-                                        "Las contrasenas no son iguales"
+                                        "Las contrasenas no coinciden"
                                 }
 
                                 else -> {
 
                                     val resultado =
                                         viewModel.recuperarContrasena(
-                                            usuarioRecuperacion.trim(),
+                                            correoRecuperacion.trim(),
                                             nuevaContrasena
                                         )
 
-                                    recuperacionExitosa =
-                                        resultado.first
-
-                                    mensajeRecuperacion =
-                                        resultado.second
+                                    recuperacionExitosa = resultado.first
+                                    mensajeRecuperacion = resultado.second
 
                                     if (resultado.first) {
                                         viewModel.onUsuarioChange(
-                                            usuarioRecuperacion.trim()
+                                            correoRecuperacion.trim()
                                         )
+
                                         viewModel.onContrasenaChange("")
                                     }
                                 }
@@ -300,13 +319,10 @@ fun LoginScreen(
                         onClick = {
 
                             mostrarRecuperacion = false
-
                             mensajeRecuperacion = ""
                             recuperacionExitosa = false
-
                             nuevaContrasena = ""
                             confirmarContrasena = ""
-
                             mostrarContrasena = false
 
                             viewModel.onContrasenaChange("")
