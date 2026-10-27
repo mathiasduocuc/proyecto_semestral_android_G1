@@ -1,4 +1,3 @@
-
 package com
 
 import android.os.Bundle
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -24,10 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 import com.model.Rol
+import com.ui.screens.EstadisticasScreen
 import com.ui.screens.FormularioScreen
 import com.ui.screens.LoginScreen
 import com.ui.screens.MenuScreen
 import com.ui.screens.PerfilScreen
+import com.ui.screens.RegistrosScreen
 import com.ui.theme.MiRegistroTheme
 import com.viewmodel.LoginViewModel
 
@@ -182,72 +182,51 @@ class MainActivity : ComponentActivity() {
                                             .weight(1f)
                                             .fillMaxWidth()
                                     ) {
-                                        FormularioScreen()
+
+                                        FormularioScreen(
+                                            correoObservador =
+                                                loginViewModel
+                                                    .obtenerUsuarioActual()
+                                                    ?.correo
+                                                    .orEmpty()
+                                        )
                                     }
                                 }
                             }
 
                             "registros" -> {
 
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(24.dp),
+                                val usuarioActual =
+                                    loginViewModel.obtenerUsuarioActual()
 
-                                    verticalArrangement =
-                                        Arrangement.Center
-                                ) {
+                                if (usuarioActual != null) {
 
-                                    Text(
-                                        text = "Ver registros",
-                                        style = MaterialTheme
-                                            .typography
-                                            .headlineMedium
-                                    )
+                                    RegistrosScreen(
+                                        rol = usuarioActual.rol,
+                                        correoUsuario = usuarioActual.correo,
 
-                                    Text(
-                                        text = "Esta pantalla se implementara mas adelante"
-                                    )
-
-                                    Button(
-                                        onClick = {
+                                        onVolver = {
                                             pantallaActual = "menu"
                                         }
-                                    ) {
-                                        Text("Volver al menu")
-                                    }
+                                    )
                                 }
                             }
 
                             "estadisticas" -> {
 
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(24.dp),
+                                val usuarioActual =
+                                    loginViewModel.obtenerUsuarioActual()
 
-                                    verticalArrangement =
-                                        Arrangement.Center
-                                ) {
+                                if (usuarioActual != null) {
 
-                                    Text(
-                                        text = "Estadisticas",
-                                        style = MaterialTheme
-                                            .typography
-                                            .headlineMedium
-                                    )
+                                    EstadisticasScreen(
+                                        rol = usuarioActual.rol,
+                                        correoUsuario = usuarioActual.correo,
 
-                                    Text(
-                                        text = "Esta pantalla se implementara mas adelante"
-                                    )
-
-                                    Button(
-                                        onClick = {
+                                        onVolver = {
                                             pantallaActual = "menu"
                                         }
-                                    ) {
-                                        Text("Volver al menu")
-                                    }
+                                    )
                                 }
                             }
                         }

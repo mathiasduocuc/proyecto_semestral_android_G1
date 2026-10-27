@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,9 +29,14 @@ import com.viewmodel.FormularioViewModel
 
 @Composable
 fun FormularioScreen(
+    correoObservador: String,
     viewModel: FormularioViewModel = viewModel()
 ) {
     val estado by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(correoObservador) {
+        viewModel.establecerObservador(correoObservador)
+    }
 
     Column(
         modifier = Modifier
@@ -255,3 +261,4 @@ fun FormularioScreen(
         }
     }
 }
+

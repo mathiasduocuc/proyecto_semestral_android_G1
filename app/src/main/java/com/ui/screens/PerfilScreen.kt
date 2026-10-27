@@ -2,6 +2,11 @@
 package com.ui.screens
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -24,10 +31,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.viewmodel.LoginViewModel
+import java.io.File
+import java.security.MessageDigest
 
 @Composable
 fun PerfilScreen(
@@ -61,16 +73,44 @@ fun PerfilScreen(
         )
     }
 
-    var contrasenaActual by remember {
+    var contrasenaActual by remember(correo) {
         mutableStateOf("")
     }
 
-    var contrasenaNueva by remember {
+    var contrasenaNueva by remember(correo) {
         mutableStateOf("")
     }
 
-    var mensaje by remember {
+    var mensaje by remember(correo) {
         mutableStateOf("")
+    }
+
+    var fotoPerfil by remember(correo) {
+        mutableStateOf(cargarFoto(context, correo))
+    }
+
+    val camaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+
+        if (bitmap != null) {
+
+            val guardado = guardarFoto(
+                context = context,
+                correo = correo,
+                bitmap = bitmap
+            )
+
+            if (guardado) {
+                fotoPerfil = bitmap
+                mensaje = "Foto de perfil guardada correctamente"
+            } else {
+                mensaje = "Error al guardar la foto"
+            }
+
+        } else {
+            mensaje = "No se tomo ninguna foto"
+        }
     }
 
     Column(
@@ -87,10 +127,29 @@ fun PerfilScreen(
             style = MaterialTheme.typography.headlineMedium
         )
 
+        fotoPerfil?.let { bitmap ->
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Foto de perfil",
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Button(
+            onClick = {
+                camaraLauncher.launch(null)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Tomar foto de perfil")
+        }
+
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
-
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -111,7 +170,9 @@ fun PerfilScreen(
                         nombre = it
                         mensaje = ""
                     },
-                    label = { Text("Nombre") },
+                    label = {
+                        Text("Nombre")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -122,14 +183,15 @@ fun PerfilScreen(
                         telefono = it
                         mensaje = ""
                     },
-                    label = { Text("Telefono") },
+                    label = {
+                        Text("Telefono")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
                 Button(
                     onClick = {
-
                         when {
 
                             nombre.isBlank() -> {
@@ -175,7 +237,6 @@ fun PerfilScreen(
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
-
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -191,7 +252,9 @@ fun PerfilScreen(
                     onValueChange = {
                         contrasenaActual = it
                     },
-                    label = { Text("Contrasena actual") },
+                    label = {
+                        Text("Contrasena actual")
+                    },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -202,7 +265,9 @@ fun PerfilScreen(
                     onValueChange = {
                         contrasenaNueva = it
                     },
-                    label = { Text("Nueva contrasena") },
+                    label = {
+                        Text("Nueva contrasena")
+                    },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -210,6 +275,7 @@ fun PerfilScreen(
 
                 Button(
                     onClick = {
+
                         val resultado = loginViewModel.cambiarContrasena(
                             contrasenaActual = contrasenaActual,
                             nuevaContrasena = contrasenaNueva
@@ -230,7 +296,6 @@ fun PerfilScreen(
         }
 
         if (mensaje.isNotBlank()) {
-
             Text(
                 text = mensaje,
                 color = MaterialTheme.colorScheme.primary
@@ -247,5 +312,61 @@ fun PerfilScreen(
         ) {
             Text("Volver al menu")
         }
+    }
+}
+
+private fun archivoFoto(
+    context: Context,
+    correo: String
+): File {
+
+    val hash = MessageDigest.getInstance("SHA-256")
+        .digest(correo.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+
+    return File(
+        context.filesDir,
+        "perfil_$hash.png"
+    )
+}
+
+private fun guardarFoto(
+    context: Context,
+    correo: String,
+    bitmap: Bitmap
+): Boolean {
+
+    return try {
+
+        archivoFoto(context, correo).outputStream().use { salida ->
+            bitmap.compress(
+                Bitmap.CompressFormat.PNG,
+                100,
+                salida
+            )
+        }
+
+    } catch (e: Exception) {
+        false
+    }
+}
+
+private fun cargarFoto(
+    context: Context,
+    correo: String
+): Bitmap? {
+
+    return try {
+
+        val archivo = archivoFoto(context, correo)
+
+        if (archivo.exists()) {
+            BitmapFactory.decodeFile(archivo.absolutePath)
+        } else {
+            null
+        }
+
+    } catch (e: Exception) {
+        null
     }
 }
