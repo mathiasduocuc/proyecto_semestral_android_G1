@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -16,16 +17,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.data.Registro
 import com.data.RegistroDbHelper
 import com.model.Rol
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun RegistrosScreen(
@@ -57,6 +62,36 @@ fun RegistrosScreen(
         mutableStateOf("")
     }
 
+    fun fechaValida(fecha: String): Boolean {
+        if (!Regex("""\d{2}/\d{2}/\d{4}""").matches(fecha)) {
+            return false
+        }
+
+        val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        formato.isLenient = false
+
+        return try {
+            val fechaConvertida = formato.parse(fecha)
+            fechaConvertida != null &&
+                    formato.format(fechaConvertida) == fecha
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun formatearFecha(valor: String): String {
+        val numeros = valor.filter { it.isDigit() }.take(8)
+
+        return buildString {
+            numeros.forEachIndexed { indice, caracter ->
+                if (indice == 2 || indice == 4) {
+                    append("/")
+                }
+                append(caracter)
+            }
+        }
+    }
+
     fun cargarRegistros() {
         registros = if (rol == Rol.SUPERVISOR) {
             dbHelper.listarRegistros()
@@ -65,12 +100,21 @@ fun RegistrosScreen(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(rol, correoUsuario) {
+    LaunchedEffect(rol, correoUsuario) {
         cargarRegistros()
     }
 
-    val registrosFiltrados = registros.filter { registro ->
-        fechaFiltro.isBlank() || registro.fecha == fechaFiltro.trim()
+    val fechaIncorrecta = fechaFiltro.isNotBlank() &&
+            !fechaValida(fechaFiltro)
+
+    val registrosFiltrados = when {
+        fechaFiltro.isBlank() -> registros
+
+        fechaIncorrecta -> emptyList()
+
+        else -> registros.filter { registro ->
+            registro.fecha == fechaFiltro
+        }
     }
 
     val registrosVisibles = if (mostrarTodos) {
@@ -99,14 +143,32 @@ fun RegistrosScreen(
 
         OutlinedTextField(
             value = fechaFiltro,
-            onValueChange = {
-                fechaFiltro = it
+            onValueChange = { nuevoValor ->
+                fechaFiltro = formatearFecha(nuevoValor)
+                mostrarTodos = false
             },
             label = {
                 Text("Filtrar por fecha")
             },
             placeholder = {
-                Text("dd/MM/yyyy")
+                Text("DD/MM/AAAA")
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            isError = fechaIncorrecta,
+            supportingText = {
+                if (fechaIncorrecta) {
+                    Text(
+                        text = if (fechaFiltro.length < 10) {
+                            "Complete la fecha: DD/MM/AAAA"
+                        } else {
+                            "Ingrese una fecha valida"
+                        }
+                    )
+                } else {
+                    Text("Formato: DD/MM/AAAA")
+                }
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -115,6 +177,7 @@ fun RegistrosScreen(
         OutlinedButton(
             onClick = {
                 fechaFiltro = ""
+                mostrarTodos = false
                 cargarRegistros()
             },
             modifier = Modifier.fillMaxWidth()
@@ -130,7 +193,11 @@ fun RegistrosScreen(
             if (registrosVisibles.isEmpty()) {
                 item {
                     Text(
-                        text = "No se encontraron registros",
+                        text = if (fechaIncorrecta) {
+                            "Ingrese una fecha valida para buscar"
+                        } else {
+                            "No se encontraron registros"
+                        },
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -144,7 +211,6 @@ fun RegistrosScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -205,3 +271,4 @@ fun RegistrosScreen(
         }
     }
 }
+

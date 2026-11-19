@@ -166,7 +166,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
 
                 _uiState.update {
                     it.copy(
-                        mensaje = "Observacion guardada en SQLite correctamente",
+                        mensaje = "Observacion guardada correctamente",
                         registroExitoso = true
                     )
                 }

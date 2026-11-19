@@ -24,7 +24,7 @@ class RegistroDbHelper(context: Context) :
 
     companion object {
         private const val NOMBRE_BD = "accesosur.db"
-        private const val VERSION_BD = 1
+        private const val VERSION_BD = 2
 
         private const val TABLA_REGISTROS = "registros"
 
@@ -49,10 +49,15 @@ class RegistroDbHelper(context: Context) :
                     "$FECHA TEXT NOT NULL, " +
                     "$HORA TEXT NOT NULL, " +
                     "$OBSERVADOR TEXT NOT NULL)"
+
+        private const val SQL_INDICE_OBSERVADOR =
+            "CREATE UNIQUE INDEX IF NOT EXISTS indice_observador_unico " +
+                    "ON $TABLA_REGISTROS ($OBSERVADOR COLLATE NOCASE)"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(SQL_CREAR_REGISTROS)
+        db.execSQL(SQL_INDICE_OBSERVADOR)
     }
 
     override fun onUpgrade(
@@ -60,14 +65,81 @@ class RegistroDbHelper(context: Context) :
         oldVersion: Int,
         newVersion: Int
     ) {
+        if (oldVersion < 2) {
+            val cursor = db.rawQuery(
+                "SELECT LOWER($OBSERVADOR), COUNT(*) " +
+                        "FROM $TABLA_REGISTROS " +
+                        "GROUP BY LOWER($OBSERVADOR) " +
+                        "HAVING COUNT(*) > 1 LIMIT 1",
+                null
+            )
+
+            val hayDuplicados = cursor.use {
+                it.moveToFirst()
+            }
+
+            if (!hayDuplicados) {
+                db.execSQL(SQL_INDICE_OBSERVADOR)
+            }
+        }
+    }
+
+    fun usuarioYaRegistro(correo: String): Boolean {
+        val correoNormalizado = correo.trim()
+
+        if (correoNormalizado.isBlank()) {
+            return false
+        }
+
+        readableDatabase.rawQuery(
+            "SELECT 1 FROM $TABLA_REGISTROS " +
+                    "WHERE $OBSERVADOR = ? COLLATE NOCASE LIMIT 1",
+            arrayOf(correoNormalizado)
+        ).use { cursor ->
+            return cursor.moveToFirst()
+        }
     }
 
     fun insertarRegistro(registro: Registro): Long {
-        return writableDatabase.insert(
-            TABLA_REGISTROS,
-            null,
-            valoresDe(registro)
+        val correo = registro.observador.trim().lowercase()
+
+        if (correo.isBlank()) {
+            return -1L
+        }
+
+        val valores = valoresDe(
+            registro.copy(observador = correo)
         )
+
+        val db = writableDatabase
+
+        db.beginTransaction()
+
+        return try {
+            val existe = db.rawQuery(
+                "SELECT 1 FROM $TABLA_REGISTROS " +
+                        "WHERE $OBSERVADOR = ? COLLATE NOCASE LIMIT 1",
+                arrayOf(correo)
+            ).use { cursor ->
+                cursor.moveToFirst()
+            }
+
+            val resultado = if (existe) {
+                -1L
+            } else {
+                db.insertWithOnConflict(
+                    TABLA_REGISTROS,
+                    null,
+                    valores,
+                    SQLiteDatabase.CONFLICT_IGNORE
+                )
+            }
+
+            db.setTransactionSuccessful()
+            resultado
+        } finally {
+            db.endTransaction()
+        }
     }
 
     fun listarRegistros(): List<Registro> {
@@ -86,8 +158,9 @@ class RegistroDbHelper(context: Context) :
 
     fun buscarPorObservador(correo: String): List<Registro> {
         return consultarRegistros(
-            "SELECT * FROM $TABLA_REGISTROS WHERE $OBSERVADOR = ? ORDER BY $ID DESC",
-            arrayOf(correo)
+            "SELECT * FROM $TABLA_REGISTROS " +
+                    "WHERE $OBSERVADOR = ? COLLATE NOCASE ORDER BY $ID DESC",
+            arrayOf(correo.trim())
         )
     }
 

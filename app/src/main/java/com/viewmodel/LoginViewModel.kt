@@ -59,6 +59,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 usuario = valor,
                 errorUsuario = null,
+                errorContrasena = null,
                 inicioExitoso = false,
                 mensaje = ""
             )
@@ -69,6 +70,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 contrasena = valor,
+                errorUsuario = null,
                 errorContrasena = null,
                 inicioExitoso = false,
                 mensaje = ""
@@ -79,42 +81,26 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     fun iniciarSesion() {
         val estado = _uiState.value
         val correo = estado.usuario.trim()
+        val contrasena = estado.contrasena
 
         val usuarioEncontrado = usuarios.find {
             it.correo.equals(correo, ignoreCase = true)
         }
 
-        val errorUsuario = when {
-            correo.isBlank() -> "Ingrese su correo"
-            !android.util.Patterns.EMAIL_ADDRESS.matcher(correo).matches() ->
-                "Correo electronico no valido"
-            usuarioEncontrado == null -> "Correo no registrado"
-            else -> null
-        }
-
-        val errorContrasena = when {
-            estado.contrasena.isBlank() -> "Ingrese su contrasena"
-            usuarioEncontrado != null &&
-                    estado.contrasena != usuarioEncontrado.contrasena ->
-                "Contrasena incorrecta"
-            else -> null
-        }
-
-        val correcto = errorUsuario == null &&
-                errorContrasena == null &&
-                usuarioEncontrado != null
+        val correcto = usuarioEncontrado != null &&
+                contrasena == usuarioEncontrado.contrasena
 
         usuarioActual = if (correcto) usuarioEncontrado else null
 
         _uiState.update {
             it.copy(
-                errorUsuario = errorUsuario,
-                errorContrasena = errorContrasena,
+                errorUsuario = if (correcto) null else "Error",
+                errorContrasena = if (correcto) null else "Error",
                 inicioExitoso = correcto,
                 mensaje = if (correcto) {
                     "Bienvenido a Rincon Sur"
                 } else {
-                    "Revise sus datos"
+                    "Correo o contrasena incorrectos"
                 }
             )
         }
@@ -229,4 +215,5 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = LoginUiState()
     }
 }
+
 
