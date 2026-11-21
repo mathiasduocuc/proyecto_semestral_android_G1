@@ -31,7 +31,8 @@ fun MenuScreen(
     onCerrarSesion: () -> Unit,
     modoOscuro: Boolean,
     onCambiarModo: () -> Unit,
-    onMiperfil: () -> Unit
+    onMiperfil: () -> Unit,
+    onGestionarUsuarios: () -> Unit
 ) {
 
     Column(
@@ -109,6 +110,15 @@ fun MenuScreen(
                     ) {
                         Text("Estadisticas")
                     }
+                
+
+                    Button(
+                        onClick = onGestionarUsuarios,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Gestionar cuentas")
+                    }
+                    
                 }
 
                 Button(

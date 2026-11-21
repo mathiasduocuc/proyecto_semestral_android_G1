@@ -80,21 +80,6 @@ class MainActivity : ComponentActivity() {
                                     viewModel = loginViewModel,
                                     onLoginExitoso = {
                                         pantallaActual = "menu"
-                                    },
-                                    onNavigateToRegistro = {
-                                        pantallaActual = "nueva_cuenta"
-                                    }
-                                )
-                            }
-                            "nueva_cuenta" -> {
-                                NuevaCuentaScreen(
-                                    viewModel = loginViewModel, // O el ViewModel que uses para registrar
-                                    onVolver = {
-                                        pantallaActual = "login"
-                                    },
-                                    onRegistroExitoso = {
-                                        // Si se registra con éxito, lo mandamos al login para que entre
-                                        pantallaActual = "login"
                                     }
                                 )
                             }
@@ -140,6 +125,9 @@ class MainActivity : ComponentActivity() {
 
                                         onMiperfil = {
                                             pantallaActual = "perfil"
+                                        },
+                                        onGestionarUsuarios = {
+                                            pantallaActual = "gestion_usuarios"
                                         }
                                     )
                                 }
@@ -226,6 +214,15 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
+                            GestionarUsuariosScreen.route -> {
+
+                                GestionarUsuariosScreen(
+                                    loginViewModel = loginViewModel,
+                                    onVolver = {
+                                        pantallaActual = "menu"
+                                    }
+                                )
+                            }
                             "estadisticas" -> {
 
                                 val usuarioActual =

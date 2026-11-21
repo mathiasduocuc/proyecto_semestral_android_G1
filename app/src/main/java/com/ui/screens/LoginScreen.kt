@@ -40,8 +40,7 @@ import com.example.accesosur.R
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
-    onLoginExitoso: () -> Unit,
-    onNavigateToRegistro: () -> Unit
+    onLoginExitoso: () -> Unit
 ) {
 
     val estado by viewModel.uiState.collectAsState()
@@ -206,15 +205,6 @@ fun LoginScreen(
                     ) {
                         Text("¿Olvidaste tu contrasena?")
                     }
-
-                    TextButton(
-                        onClick = {
-                            onNavigateToRegistro()
-                            },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("¿No tienes una cuenta?")
-                        }
 
                 } else {
 
