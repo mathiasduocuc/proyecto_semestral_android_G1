@@ -1,4 +1,3 @@
-
 package com.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -110,7 +109,6 @@ fun MenuScreen(
                     ) {
                         Text("Estadisticas")
                     }
-                
 
                     Button(
                         onClick = onGestionarUsuarios,
@@ -118,7 +116,6 @@ fun MenuScreen(
                     ) {
                         Text("Gestionar cuentas")
                     }
-                    
                 }
 
                 Button(

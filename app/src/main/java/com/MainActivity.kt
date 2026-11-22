@@ -28,7 +28,7 @@ import com.ui.screens.LoginScreen
 import com.ui.screens.MenuScreen
 import com.ui.screens.PerfilScreen
 import com.ui.screens.RegistrosScreen
-import com.ui.screens.NuevaCuentaScreen
+import com.ui.screens.GestionarUsuarioScreen // <--- IMPORTANTE: Verifica que se llame así tu archivo
 import com.ui.theme.MiRegistroTheme
 import com.viewmodel.LoginViewModel
 
@@ -114,18 +114,16 @@ class MainActivity : ComponentActivity() {
 
                                         onCambiarModo = {
                                             modoOscuro = !modoOscuro
-
                                             preferencias.edit()
-                                                .putBoolean(
-                                                    "modo_oscuro",
-                                                    modoOscuro
-                                                )
+                                                .putBoolean("modo_oscuro", modoOscuro)
                                                 .apply()
                                         },
 
                                         onMiperfil = {
                                             pantallaActual = "perfil"
                                         },
+
+                                        // AQUÍ ESTÁ EL ESTADO QUE DEBE COINCIDIR
                                         onGestionarUsuarios = {
                                             pantallaActual = "gestion_usuarios"
                                         }
@@ -143,9 +141,7 @@ class MainActivity : ComponentActivity() {
                                     PerfilScreen(
                                         correo = usuarioActual.correo,
 
-                                        rol = if (
-                                            usuarioActual.rol == Rol.OBSERVADOR
-                                        ) {
+                                        rol = if (usuarioActual.rol == Rol.OBSERVADOR) {
                                             "Observador"
                                         } else {
                                             "Supervisor"
@@ -164,8 +160,7 @@ class MainActivity : ComponentActivity() {
 
                                 Column(
                                     modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement =
-                                        Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
 
                                     Button(
@@ -214,15 +209,16 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            GestionarUsuariosScreen.route -> {
-
-                                GestionarUsuariosScreen(
-                                    loginViewModel = loginViewModel,
+                            // AQUÍ ESTÁ LA PALABRA EXACTA (sin la "r")
+                            "gestion_usuarios" -> {
+                                GestionarUsuarioScreen(
+                                    viewModel = loginViewModel,
                                     onVolver = {
                                         pantallaActual = "menu"
                                     }
                                 )
                             }
+
                             "estadisticas" -> {
 
                                 val usuarioActual =

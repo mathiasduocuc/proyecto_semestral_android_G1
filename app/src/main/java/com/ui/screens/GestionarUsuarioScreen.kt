@@ -10,11 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.model.Rol
-import com.model.Usuario 
+import com.model.Usuario
 import com.viewmodel.LoginViewModel
 
 @Composable
-fun GestionUsuariosScreen(
+fun GestionarUsuarioScreen(
     viewModel: LoginViewModel,
     onVolver: () -> Unit
 ) {
@@ -23,10 +23,14 @@ fun GestionUsuariosScreen(
     var modoEdicion by remember { mutableStateOf(false) }
     var usuarioAEditar by remember { mutableStateOf<String?>(null) }
     var mensajeError by remember { mutableStateOf("") }
-    var recargarLista by remember { mutableStateOf(false) }
-    val observadores = remember(recargarLista) { viewModel.obtenerListaObservadores() }
 
-    val observadores = viewModel.obtenerListaObservadores() 
+    // Variable para forzar el redibujado de la lista
+    var recargarLista by remember { mutableStateOf(false) }
+
+    // Quitamos la doble declaración que tenías aquí
+    val observadores = remember(recargarLista) {
+        viewModel.obtenerListaObservadores()
+    }
 
     Column(
         modifier = Modifier
@@ -37,7 +41,7 @@ fun GestionUsuariosScreen(
             text = "Gestión de Observadores",
             style = MaterialTheme.typography.headlineMedium
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -47,16 +51,16 @@ fun GestionUsuariosScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 OutlinedTextField(
                     value = correo,
                     onValueChange = { correo = it },
                     label = { Text("Correo") },
-                    enabled = !modoEdicion, 
+                    enabled = !modoEdicion,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 OutlinedTextField(
                     value = contrasena,
                     onValueChange = { contrasena = it },
@@ -64,7 +68,7 @@ fun GestionUsuariosScreen(
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 if (mensajeError.isNotEmpty()) {
                     Text(
                         text = mensajeError,
@@ -75,7 +79,7 @@ fun GestionUsuariosScreen(
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -86,19 +90,20 @@ fun GestionUsuariosScreen(
                                 mensajeError = "Todos los campos son obligatorios"
                             } else {
                                 if (modoEdicion) {
-                          
-                                    val exito = viewModel.modificarContrasena(correo, contrasena)
+                                    // Asegúrate de que el ViewModel tenga esta función exacta
+                                    val exito = viewModel.modificarContrasenaObservador(correo, contrasena)
                                     if (exito) {
                                         correo = ""; contrasena = ""
                                         modoEdicion = false; usuarioAEditar = null
                                         mensajeError = ""
+                                        recargarLista = !recargarLista // Refrescar lista
                                     }
                                 } else {
-
                                     val exito = viewModel.crearNuevoObservador(correo, contrasena)
                                     if (exito) {
                                         correo = ""; contrasena = ""
                                         mensajeError = ""
+                                        recargarLista = !recargarLista // Refrescar lista
                                     } else {
                                         mensajeError = "El correo ya está registrado"
                                     }
@@ -132,7 +137,7 @@ fun GestionUsuariosScreen(
             text = "Lista de Observadores (${observadores.size})",
             style = MaterialTheme.typography.titleMedium
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
 
         LazyColumn(
@@ -149,24 +154,23 @@ fun GestionUsuariosScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = usuario.correo, style = MaterialTheme.typography.bodyLarge)
-                     
+
                         Row {
                             TextButton(
                                 onClick = {
                                     correo = usuario.correo
-                                    contrasena = "" 
+                                    contrasena = ""
                                     modoEdicion = true
                                     usuarioAEditar = usuario.correo
                                 }
                             ) {
                                 Text("Editar")
                             }
-                            
+
                             TextButton(
                                 onClick = {
-                                   
-                                    viewModel.eliminarUsuario(usuario.correo)
-                                    if exito {  
+                                    val exito = viewModel.eliminarUsuario(usuario.correo)
+                                    if (exito) {
                                         recargarLista = !recargarLista
                                     }
                                 }
