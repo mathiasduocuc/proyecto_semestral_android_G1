@@ -9,8 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.model.Rol
-import com.model.Usuario
 import com.viewmodel.LoginViewModel
 
 @Composable
@@ -21,13 +19,9 @@ fun GestionarUsuarioScreen(
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var modoEdicion by remember { mutableStateOf(false) }
-    var usuarioAEditar by remember { mutableStateOf<String?>(null) }
     var mensajeError by remember { mutableStateOf("") }
-
-    // Variable para forzar el redibujado de la lista
     var recargarLista by remember { mutableStateOf(false) }
 
-    // Quitamos la doble declaración que tenías aquí
     val observadores = remember(recargarLista) {
         viewModel.obtenerListaObservadores()
     }
@@ -89,23 +83,29 @@ fun GestionarUsuarioScreen(
                             if (correo.isBlank() || contrasena.isBlank()) {
                                 mensajeError = "Todos los campos son obligatorios"
                             } else {
+                                mensajeError = "Procesando..."
                                 if (modoEdicion) {
-                                    // Asegúrate de que el ViewModel tenga esta función exacta
-                                    val exito = viewModel.modificarContrasenaObservador(correo, contrasena)
-                                    if (exito) {
-                                        correo = ""; contrasena = ""
-                                        modoEdicion = false; usuarioAEditar = null
-                                        mensajeError = ""
-                                        recargarLista = !recargarLista // Refrescar lista
+                                    // LLAMADA ASÍNCRONA AL BACKEND
+                                    viewModel.modificarContrasenaObservador(correo, contrasena) { exito ->
+                                        if (exito) {
+                                            correo = ""; contrasena = ""
+                                            modoEdicion = false
+                                            mensajeError = ""
+                                            recargarLista = !recargarLista
+                                        } else {
+                                            mensajeError = "Error al modificar contraseña"
+                                        }
                                     }
                                 } else {
-                                    val exito = viewModel.crearNuevoObservador(correo, contrasena)
-                                    if (exito) {
-                                        correo = ""; contrasena = ""
-                                        mensajeError = ""
-                                        recargarLista = !recargarLista // Refrescar lista
-                                    } else {
-                                        mensajeError = "El correo ya está registrado"
+                                    // LLAMADA ASÍNCRONA AL BACKEND
+                                    viewModel.crearNuevoObservador(correo, contrasena) { exito ->
+                                        if (exito) {
+                                            correo = ""; contrasena = ""
+                                            mensajeError = ""
+                                            recargarLista = !recargarLista
+                                        } else {
+                                            mensajeError = "El correo ya está registrado en el servidor"
+                                        }
                                     }
                                 }
                             }
@@ -119,7 +119,7 @@ fun GestionarUsuarioScreen(
                         OutlinedButton(
                             onClick = {
                                 correo = ""; contrasena = ""
-                                modoEdicion = false; usuarioAEditar = null
+                                modoEdicion = false
                                 mensajeError = ""
                             },
                             modifier = Modifier.weight(1f)
@@ -161,7 +161,6 @@ fun GestionarUsuarioScreen(
                                     correo = usuario.correo
                                     contrasena = ""
                                     modoEdicion = true
-                                    usuarioAEditar = usuario.correo
                                 }
                             ) {
                                 Text("Editar")
@@ -169,9 +168,12 @@ fun GestionarUsuarioScreen(
 
                             TextButton(
                                 onClick = {
-                                    val exito = viewModel.eliminarUsuario(usuario.correo)
-                                    if (exito) {
-                                        recargarLista = !recargarLista
+                                    viewModel.eliminarUsuario(usuario.correo) { exito ->
+                                        if (exito) {
+                                            recargarLista = !recargarLista //
+                                        } else {
+                                            mensajeError = "No se pudo eliminar del servidor"
+                                        }
                                     }
                                 }
                             ) {

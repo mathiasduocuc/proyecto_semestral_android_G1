@@ -3,12 +3,18 @@ package com.viewmodel
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.data.RetrofitClient
+import com.model.LoginRequest
 import com.model.LoginUiState
+import com.model.RecoverRequest
+import com.model.RegisterRequest
 import com.model.Rol
 import com.model.Usuario
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -20,268 +26,192 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         Context.MODE_PRIVATE
     )
 
-    private val usuarios = mutableListOf(
-        Usuario(
-            id = 1,
-            nombre = "Observador",
-            correo = "observador@rinconsur.cl",
-            contrasena = preferencias.getString(
-                "clave_observador@rinconsur.cl",
-                "1234"
-            ) ?: "1234",
-            rol = Rol.OBSERVADOR
-        ),
-        Usuario(
-            id = 2,
-            nombre = "Supervisor",
-            correo = "supervisor@rinconsur.cl",
-            contrasena = preferencias.getString(
-                "clave_supervisor@rinconsur.cl",
-                "1234"
-            ) ?: "1234",
-            rol = Rol.SUPERVISOR
-        )
+    // Lista local para la pantalla de gestión (el backend no tiene endpoint para listar aún)
+    private val usuarios = mutableListOf<Usuario>(
+        Usuario(id = 1, nombre = "Observador", correo = "observador@rinconsur.cl", contrasena = "", rol = Rol.OBSERVADOR),
+        Usuario(id = 2, nombre = "Supervisor", correo = "supervisor@rinconsur.cl", contrasena = "", rol = Rol.SUPERVISOR)
     )
 
     private var usuarioActual: Usuario? = null
 
-    fun obtenerUsuarioActual(): Usuario? {
-        return usuarioActual
-    }
+    fun obtenerUsuarioActual(): Usuario? = usuarioActual
 
-    fun obtenerRolActual(): Rol? {
-        return usuarioActual?.rol
-    }
+    fun obtenerRolActual(): Rol? = usuarioActual?.rol
 
     fun onUsuarioChange(valor: String) {
-        _uiState.update {
-            it.copy(
-                usuario = valor,
-                errorUsuario = null,
-                inicioExitoso = false,
-                mensaje = ""
-            )
-        }
+        _uiState.update { it.copy(usuario = valor, errorUsuario = null, inicioExitoso = false, mensaje = "") }
     }
 
     fun onContrasenaChange(valor: String) {
-        _uiState.update {
-            it.copy(
-                contrasena = valor,
-                errorContrasena = null,
-                inicioExitoso = false,
-                mensaje = ""
-            )
-        }
+        _uiState.update { it.copy(contrasena = valor, errorContrasena = null, inicioExitoso = false, mensaje = "") }
     }
 
+    // --- LOGIN CONECTADO A SPRING BOOT ---
     fun iniciarSesion() {
         val estado = _uiState.value
         val correo = estado.usuario.trim()
+        val contrasena = estado.contrasena
 
-        val usuarioEncontrado = usuarios.find {
-            it.correo.equals(correo, ignoreCase = true)
+        if (correo.isBlank() || contrasena.isBlank()) {
+            _uiState.update { it.copy(errorUsuario = "Ingrese correo", errorContrasena = "Ingrese contraseña") }
+            return
         }
 
-        val errorUsuario = when {
-            correo.isBlank() -> "Ingrese su correo"
-            !android.util.Patterns.EMAIL_ADDRESS.matcher(correo).matches() ->
-                "Correo electronico no valido"
-            usuarioEncontrado == null -> "Correo no registrado"
-            else -> null
-        }
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.authApi.login(LoginRequest(correo, contrasena))
 
-        val errorContrasena = when {
-            estado.contrasena.isBlank() -> "Ingrese su contrasena"
-            usuarioEncontrado != null &&
-                    estado.contrasena != usuarioEncontrado.contrasena ->
-                "Contrasena incorrecta"
-            else -> null
-        }
+                if (response.isSuccessful) {
+                    val data = response.body()
+                    if (data != null) {
+                        preferencias.edit()
+                            .putString("jwt_token", data.token)
+                            .putString("user_correo", data.correo)
+                            .putString("user_rol", data.rol)
+                            .apply()
 
-        val correcto = errorUsuario == null &&
-                errorContrasena == null &&
-                usuarioEncontrado != null
+                        usuarioActual = Usuario(
+                            id = 0,
+                            nombre = if(data.rol == "SUPERVISOR") "Supervisor" else "Observador",
+                            correo = data.correo,
+                            contrasena = "",
+                            rol = if (data.rol == "SUPERVISOR") Rol.SUPERVISOR else Rol.OBSERVADOR
+                        )
 
-        usuarioActual = if (correcto) usuarioEncontrado else null
-
-        _uiState.update {
-            it.copy(
-                errorUsuario = errorUsuario,
-                errorContrasena = errorContrasena,
-                inicioExitoso = correcto,
-                mensaje = if (correcto) {
-                    "Bienvenido a Rincon Sur"
+                        _uiState.update { it.copy(inicioExitoso = true, mensaje = "Bienvenido a Rincon Sur") }
+                    }
                 } else {
-                    "Revise sus datos"
+                    _uiState.update { it.copy(inicioExitoso = false, mensaje = "Credenciales incorrectas") }
                 }
-            )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(inicioExitoso = false, mensaje = "Error de conexión al servidor") }
+            }
         }
     }
 
+    // --- RECUPERAR CONTRASEÑA (PANTALLA LOGIN) ---
+    fun recuperarContrasena(
+        correo: String,
+        nuevaContrasena: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.authApi.recoverPassword(
+                    RecoverRequest(correo, nuevaContrasena)
+                )
+
+                if (response.isSuccessful) {
+                    _uiState.update {
+                        it.copy(
+                            usuario = correo,
+                            contrasena = "",
+                            mensaje = "Contraseña actualizada"
+                        )
+                    }
+                    onResult(true, "Contraseña actualizada correctamente")
+                } else {
+                    onResult(false, "Correo no encontrado en el servidor")
+                }
+            } catch (e: Exception) {
+                onResult(false, "Error de conexión al servidor")
+            }
+        }
+    }
+
+    // --- CAMBIAR CONTRASEÑA (PANTALLA PERFIL) ---
     fun cambiarContrasena(
         contrasenaActual: String,
-        nuevaContrasena: String
-    ): Pair<Boolean, String> {
+        nuevaContrasena: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        val correo = usuarioActual?.correo ?: preferencias.getString("user_correo", "") ?: ""
 
-        val usuario = usuarioActual
-            ?: return false to "Debe iniciar sesion"
-
-        if (contrasenaActual.isBlank()) {
-            return false to "Ingrese su contrasena actual"
+        if (correo.isBlank()) {
+            onResult(false, "Debe iniciar sesión")
+            return
         }
-
-        if (contrasenaActual != usuario.contrasena) {
-            return false to "La contrasena actual es incorrecta"
-        }
-
         if (nuevaContrasena.length < 4) {
-            return false to "La nueva contrasena debe tener al menos 4 caracteres"
+            onResult(false, "La nueva contrasena debe tener al menos 4 caracteres")
+            return
         }
 
-        if (nuevaContrasena == contrasenaActual) {
-            return false to "La nueva contrasena debe ser diferente"
+        viewModelScope.launch {
+            try {
+                // Usamos el endpoint de recuperación para cambiar la clave en MySQL
+                val response = RetrofitClient.authApi.recoverPassword(
+                    RecoverRequest(correo, nuevaContrasena)
+                )
+
+                if (response.isSuccessful) {
+                    onResult(true, "Contrasena actualizada correctamente")
+                } else {
+                    onResult(false, "No se pudo actualizar la contrasena en el servidor")
+                }
+            } catch (e: Exception) {
+                onResult(false, "Error de conexión al servidor")
+            }
         }
-
-        val indice = usuarios.indexOfFirst {
-            it.id == usuario.id
-        }
-
-        if (indice == -1) {
-            return false to "Usuario no encontrado"
-        }
-
-        val actualizado = usuario.copy(
-            contrasena = nuevaContrasena
-        )
-
-        val guardado = preferencias.edit()
-            .putString(
-                "clave_${usuario.correo.lowercase()}",
-                nuevaContrasena
-            )
-            .commit()
-
-        if (!guardado) {
-            return false to "No se pudo guardar la contrasena"
-        }
-
-        usuarios[indice] = actualizado
-        usuarioActual = actualizado
-
-        return true to "Contrasena actualizada correctamente"
     }
 
-    fun recuperarContrasena(
-        usuario: String,
-        nuevaContrasena: String
-    ): Pair<Boolean, String> {
-
-        val correo = usuario.trim()
-
-        val indice = usuarios.indexOfFirst {
-            it.correo.equals(correo, ignoreCase = true)
-        }
-
-        if (indice == -1) {
-            return false to "Correo no encontrado"
-        }
-
-        if (nuevaContrasena.length < 4) {
-            return false to "La contrasena debe tener al menos 4 caracteres"
-        }
-
-        val usuarioActualizado = usuarios[indice].copy(
-            contrasena = nuevaContrasena
-        )
-
-        val guardado = preferencias.edit()
-            .putString(
-                "clave_${usuarioActualizado.correo.lowercase()}",
-                nuevaContrasena
-            )
-            .commit()
-
-        if (!guardado) {
-            return false to "No se pudo actualizar la contrasena"
-        }
-
-        usuarios[indice] = usuarioActualizado
-        usuarioActual = null
-
-        _uiState.update {
-            it.copy(
-                usuario = correo,
-                contrasena = "",
-                errorUsuario = null,
-                errorContrasena = null,
-                inicioExitoso = false,
-                mensaje = "Contrasena actualizada"
-            )
-        }
-
-        return true to "Contrasena actualizada"
-    }
-
-    // --- FUNCIONES PARA LA GESTIÓN DE USUARIOS ---
-
+    // --- GESTIÓN DE USUARIOS (PANTALLA SUPERVISOR) ---
     fun obtenerListaObservadores(): List<Usuario> {
         return usuarios.filter { it.rol == Rol.OBSERVADOR }
     }
 
-    fun crearNuevoObservador(correo: String, contrasena: String): Boolean {
-        if (usuarios.any { it.correo.equals(correo.trim(), ignoreCase = true) }) {
-            return false
-        }
-
-        val nuevoId = (usuarios.maxOfOrNull { it.id } ?: 0) + 1
-
-        val nuevoObservador = Usuario(
-            id = nuevoId,
-            nombre = "Observador Nuevo",
-            correo = correo.trim(),
-            contrasena = contrasena,
-            rol = Rol.OBSERVADOR
-        )
-
-        usuarios.add(nuevoObservador)
-
-        preferencias.edit()
-            .putString("clave_${nuevoObservador.correo.lowercase()}", contrasena)
-            .apply()
-
-        return true
-    }
-
-    fun eliminarUsuario(correo: String): Boolean {
-        val indice = usuarios.indexOfFirst { it.correo.equals(correo, ignoreCase = true) }
-
-        return if (indice != -1) {
-            val eliminado = usuarios.removeAt(indice)
-            preferencias.edit().remove("clave_${eliminado.correo.lowercase()}").apply()
-            true
-        } else {
-            false
+    fun crearNuevoObservador(correo: String, contrasena: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.authApi.register(RegisterRequest(correo, contrasena, "OBSERVADOR"))
+                if (response.isSuccessful) {
+                    val nuevoId = (usuarios.maxOfOrNull { it.id } ?: 0) + 1
+                    usuarios.add(Usuario(id = nuevoId, nombre = "Observador Nuevo", correo = correo, contrasena = "", rol = Rol.OBSERVADOR))
+                    onResult(true)
+                } else {
+                    onResult(false)
+                }
+            } catch (e: Exception) {
+                onResult(false)
+            }
         }
     }
 
-    fun modificarContrasenaObservador(correo: String, nuevaContrasena: String): Boolean {
-        val indice = usuarios.indexOfFirst { it.correo.equals(correo, ignoreCase = true) }
+    fun modificarContrasenaObservador(correo: String, nuevaContrasena: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.authApi.recoverPassword(RecoverRequest(correo, nuevaContrasena))
+                onResult(response.isSuccessful)
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
 
-        if (indice == -1) return false
+    fun eliminarUsuario(correo: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // Llamamos al endpoint DELETE de Spring Boot
+                val response = RetrofitClient.authApi.deleteUser(correo)
 
-        val usuarioActualizado = usuarios[indice].copy(contrasena = nuevaContrasena)
-        usuarios[indice] = usuarioActualizado
-
-        preferencias.edit()
-            .putString("clave_${usuarioActualizado.correo.lowercase()}", nuevaContrasena)
-            .apply()
-
-        return true
+                if (response.isSuccessful) {
+                    // Si el servidor lo borró, lo borramos de la lista local
+                    val indice = usuarios.indexOfFirst { it.correo.equals(correo, ignoreCase = true) }
+                    if (indice != -1) {
+                        usuarios.removeAt(indice)
+                    }
+                    onResult(true)
+                } else {
+                    onResult(false)
+                }
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
     }
 
     fun cerrarSesion() {
         usuarioActual = null
+        preferencias.edit().clear().apply()
         _uiState.value = LoginUiState()
     }
 }

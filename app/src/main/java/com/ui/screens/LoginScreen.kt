@@ -274,53 +274,38 @@ fun LoginScreen(
 
                     Button(
                         onClick = {
-
                             when {
-
                                 correoRecuperacion.isBlank() -> {
                                     recuperacionExitosa = false
-                                    mensajeRecuperacion =
-                                        "Ingrese su correo electronico"
+                                    mensajeRecuperacion = "Ingrese su correo electronico"
                                 }
-
                                 !android.util.Patterns.EMAIL_ADDRESS
                                     .matcher(correoRecuperacion.trim())
                                     .matches() -> {
-
                                     recuperacionExitosa = false
-                                    mensajeRecuperacion =
-                                        "Ingrese un correo electronico valido"
+                                    mensajeRecuperacion = "Ingrese un correo electronico valido"
                                 }
-
                                 nuevaContrasena.length < 4 -> {
                                     recuperacionExitosa = false
-                                    mensajeRecuperacion =
-                                        "La contrasena debe tener al menos 4 caracteres"
+                                    mensajeRecuperacion = "La contrasena debe tener al menos 4 caracteres"
                                 }
-
                                 nuevaContrasena != confirmarContrasena -> {
                                     recuperacionExitosa = false
-                                    mensajeRecuperacion =
-                                        "Las contrasenas no coinciden"
+                                    mensajeRecuperacion = "Las contrasenas no coinciden"
                                 }
-
                                 else -> {
+                                    // AQUÍ LLAMAMOS AL SERVIDOR (Nuevo código)
+                                    viewModel.recuperarContrasena(
+                                        correoRecuperacion.trim(),
+                                        nuevaContrasena
+                                    ) { exito, mensaje ->
+                                        recuperacionExitosa = exito
+                                        mensajeRecuperacion = mensaje
 
-                                    val resultado =
-                                        viewModel.recuperarContrasena(
-                                            correoRecuperacion.trim(),
-                                            nuevaContrasena
-                                        )
-
-                                    recuperacionExitosa = resultado.first
-                                    mensajeRecuperacion = resultado.second
-
-                                    if (resultado.first) {
-                                        viewModel.onUsuarioChange(
-                                            correoRecuperacion.trim()
-                                        )
-
-                                        viewModel.onContrasenaChange("")
+                                        if (exito) {
+                                            viewModel.onUsuarioChange(correoRecuperacion.trim())
+                                            viewModel.onContrasenaChange("")
+                                        }
                                     }
                                 }
                             }

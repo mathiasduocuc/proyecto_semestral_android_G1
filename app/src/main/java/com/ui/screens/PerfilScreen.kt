@@ -1,4 +1,3 @@
-
 package com.ui.screens
 
 import android.content.Context
@@ -275,17 +274,18 @@ fun PerfilScreen(
 
                 Button(
                     onClick = {
-
-                        val resultado = loginViewModel.cambiarContrasena(
+                        // CAMBIO AQUÍ: Llamada asíncrona
+                        loginViewModel.cambiarContrasena(
                             contrasenaActual = contrasenaActual,
                             nuevaContrasena = contrasenaNueva
-                        )
+                        ) { exito, mensajeResultado ->
 
-                        mensaje = resultado.second
+                            mensaje = mensajeResultado
 
-                        if (resultado.first) {
-                            contrasenaActual = ""
-                            contrasenaNueva = ""
+                            if (exito) {
+                                contrasenaActual = ""
+                                contrasenaNueva = ""
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
