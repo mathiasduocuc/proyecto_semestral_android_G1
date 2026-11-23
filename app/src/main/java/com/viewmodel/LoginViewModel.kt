@@ -28,8 +28,11 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     // Lista local para la pantalla de gestión (el backend no tiene endpoint para listar aún)
     private val usuarios = mutableListOf<Usuario>(
-        Usuario(id = 1, nombre = "Observador", correo = "observador@rinconsur.cl", contrasena = "", rol = Rol.OBSERVADOR),
-        Usuario(id = 2, nombre = "Supervisor", correo = "supervisor@rinconsur.cl", contrasena = "", rol = Rol.SUPERVISOR)
+        Usuario(id = 1, nombre = "Observador", correo = "observador@rinconsur.cl", contrasena = "1234", rol = Rol.OBSERVADOR),
+        Usuario(id = 2, nombre = "Supervisor",
+            correo = "supervisor@rinconsur.cl",
+            contrasena = "1234",
+            rol = Rol.SUPERVISOR)
     )
 
     private var usuarioActual: Usuario? = null
