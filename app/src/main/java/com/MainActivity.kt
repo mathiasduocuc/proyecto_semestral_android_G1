@@ -20,21 +20,23 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-
 import com.model.Rol
+import com.ui.screens.AsignarTurnoScreen
 import com.ui.screens.EstadisticasScreen
 import com.ui.screens.FormularioScreen
+import com.ui.screens.GestionarUsuarioScreen
 import com.ui.screens.LoginScreen
 import com.ui.screens.MenuScreen
 import com.ui.screens.PerfilScreen
 import com.ui.screens.RegistrosScreen
-import com.ui.screens.GestionarUsuarioScreen // <--- IMPORTANTE: Verifica que se llame así tu archivo
 import com.ui.theme.MiRegistroTheme
 import com.viewmodel.LoginViewModel
+import com.viewmodel.TurnoViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val loginViewModel: LoginViewModel by viewModels()
+    private val turnoViewModel: TurnoViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +85,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
                             "menu" -> {
 
                                 val rolActual =
@@ -114,8 +117,12 @@ class MainActivity : ComponentActivity() {
 
                                         onCambiarModo = {
                                             modoOscuro = !modoOscuro
+
                                             preferencias.edit()
-                                                .putBoolean("modo_oscuro", modoOscuro)
+                                                .putBoolean(
+                                                    "modo_oscuro",
+                                                    modoOscuro
+                                                )
                                                 .apply()
                                         },
 
@@ -123,11 +130,68 @@ class MainActivity : ComponentActivity() {
                                             pantallaActual = "perfil"
                                         },
 
-                                        // AQUÍ ESTÁ EL ESTADO QUE DEBE COINCIDIR
                                         onGestionarUsuarios = {
                                             pantallaActual = "gestion_usuarios"
+                                        },
+
+                                        onAsignarTurnos = {
+                                            pantallaActual = "asignar_turnos"
                                         }
                                     )
+                                }
+                            }
+
+                            "asignar_turnos" -> {
+
+                                val rolActual =
+                                    loginViewModel.obtenerRolActual()
+
+                                if (rolActual == Rol.SUPERVISOR) {
+
+                                    AsignarTurnoScreen(
+                                        viewModel = turnoViewModel,
+
+                                        onVolver = {
+                                            pantallaActual = "menu"
+                                        }
+                                    )
+
+                                } else {
+
+                                    Button(
+                                        onClick = {
+                                            pantallaActual = "menu"
+                                        }
+                                    ) {
+                                        Text("Volver al menu")
+                                    }
+                                }
+                            }
+
+                            "gestion_usuarios" -> {
+
+                                val rolActual =
+                                    loginViewModel.obtenerRolActual()
+
+                                if (rolActual == Rol.SUPERVISOR) {
+
+                                    GestionarUsuarioScreen(
+                                        viewModel = loginViewModel,
+
+                                        onVolver = {
+                                            pantallaActual = "menu"
+                                        }
+                                    )
+
+                                } else {
+
+                                    Button(
+                                        onClick = {
+                                            pantallaActual = "menu"
+                                        }
+                                    ) {
+                                        Text("Volver al menu")
+                                    }
                                 }
                             }
 
@@ -141,7 +205,9 @@ class MainActivity : ComponentActivity() {
                                     PerfilScreen(
                                         correo = usuarioActual.correo,
 
-                                        rol = if (usuarioActual.rol == Rol.OBSERVADOR) {
+                                        rol = if (
+                                            usuarioActual.rol == Rol.OBSERVADOR
+                                        ) {
                                             "Observador"
                                         } else {
                                             "Supervisor"
@@ -160,13 +226,16 @@ class MainActivity : ComponentActivity() {
 
                                 Column(
                                     modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+
+                                    verticalArrangement =
+                                        Arrangement.spacedBy(8.dp)
                                 ) {
 
                                     Button(
                                         onClick = {
                                             pantallaActual = "menu"
                                         },
+
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(8.dp)
@@ -200,6 +269,7 @@ class MainActivity : ComponentActivity() {
 
                                     RegistrosScreen(
                                         rol = usuarioActual.rol,
+
                                         correoUsuario = usuarioActual.correo,
 
                                         onVolver = {
@@ -207,16 +277,6 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
-                            }
-
-                            // AQUÍ ESTÁ LA PALABRA EXACTA (sin la "r")
-                            "gestion_usuarios" -> {
-                                GestionarUsuarioScreen(
-                                    viewModel = loginViewModel,
-                                    onVolver = {
-                                        pantallaActual = "menu"
-                                    }
-                                )
                             }
 
                             "estadisticas" -> {
@@ -228,6 +288,7 @@ class MainActivity : ComponentActivity() {
 
                                     EstadisticasScreen(
                                         rol = usuarioActual.rol,
+
                                         correoUsuario = usuarioActual.correo,
 
                                         onVolver = {

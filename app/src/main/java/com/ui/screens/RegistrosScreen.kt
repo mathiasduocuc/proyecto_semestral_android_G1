@@ -1,6 +1,7 @@
 
 package com.ui.screens
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,10 +13,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.data.Registro
 import com.data.RegistroDbHelper
 import com.model.Rol
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun RegistrosScreen(
@@ -57,6 +60,25 @@ fun RegistrosScreen(
         mutableStateOf("")
     }
 
+    val calendario = Calendar.getInstance()
+
+    val selectorFecha = DatePickerDialog(
+        context,
+        { _, anio, mes, dia ->
+            fechaFiltro = String.format(
+                Locale.US,
+                "%02d/%02d/%04d",
+                dia,
+                mes + 1,
+                anio
+            )
+            mostrarTodos = false
+        },
+        calendario.get(Calendar.YEAR),
+        calendario.get(Calendar.MONTH),
+        calendario.get(Calendar.DAY_OF_MONTH)
+    )
+
     fun cargarRegistros() {
         registros = if (rol == Rol.SUPERVISOR) {
             dbHelper.listarRegistros()
@@ -65,12 +87,13 @@ fun RegistrosScreen(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(rol, correoUsuario) {
+    LaunchedEffect(rol, correoUsuario) {
         cargarRegistros()
     }
 
     val registrosFiltrados = registros.filter { registro ->
-        fechaFiltro.isBlank() || registro.fecha == fechaFiltro.trim()
+        fechaFiltro.isBlank() ||
+                registro.fecha == fechaFiltro.trim()
     }
 
     val registrosVisibles = if (mostrarTodos) {
@@ -97,24 +120,30 @@ fun RegistrosScreen(
 
         Text("Historial de observaciones")
 
-        OutlinedTextField(
-            value = fechaFiltro,
-            onValueChange = {
-                fechaFiltro = it
-            },
-            label = {
-                Text("Filtrar por fecha")
-            },
-            placeholder = {
-                Text("dd/MM/yyyy")
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+        Text(
+            text = "Filtrar por fecha",
+            style = MaterialTheme.typography.bodyMedium
         )
 
         OutlinedButton(
             onClick = {
+                selectorFecha.show()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = if (fechaFiltro.isBlank()) {
+                    "Seleccionar fecha (DD/MM/YYYY)"
+                } else {
+                    "Fecha seleccionada: $fechaFiltro"
+                }
+            )
+        }
+
+        OutlinedButton(
+            onClick = {
                 fechaFiltro = ""
+                mostrarTodos = false
                 cargarRegistros()
             },
             modifier = Modifier.fillMaxWidth()
@@ -144,7 +173,6 @@ fun RegistrosScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -169,7 +197,11 @@ fun RegistrosScreen(
 
                         Text(
                             text = "Compras de otra tienda: " +
-                                    if (registro.comprasOtraTienda) "Si" else "No"
+                                    if (registro.comprasOtraTienda) {
+                                        "Si"
+                                    } else {
+                                        "No"
+                                    }
                         )
 
                         if (rol == Rol.SUPERVISOR) {

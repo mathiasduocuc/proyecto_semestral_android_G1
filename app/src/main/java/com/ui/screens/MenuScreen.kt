@@ -27,6 +27,7 @@ fun MenuScreen(
     onRegistrarClientes: () -> Unit,
     onVerRegistros: () -> Unit,
     onEstadisticas: () -> Unit,
+    onAsignarTurnos: () -> Unit,
     onCerrarSesion: () -> Unit,
     modoOscuro: Boolean,
     onCambiarModo: () -> Unit,
@@ -97,6 +98,20 @@ fun MenuScreen(
                 if (rol == Rol.SUPERVISOR) {
 
                     Button(
+                        onClick = onGestionarUsuarios,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Gestionar cuentas")
+                    }
+
+                    Button(
+                        onClick = onAsignarTurnos,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Asignar turnos")
+                    }
+
+                    Button(
                         onClick = onVerRegistros,
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -108,13 +123,6 @@ fun MenuScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Estadisticas")
-                    }
-
-                    Button(
-                        onClick = onGestionarUsuarios,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Gestionar cuentas")
                     }
                 }
 
