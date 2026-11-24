@@ -16,7 +16,7 @@ import retrofit2.http.GET
 interface AuthApi {
 
     @DELETE("api/auth/delete/{correo}")
-    suspend fun deleteUser(@Path("correo") correo: String): Response<String>
+    suspend fun deleteUser(@Path("correo") correo: String): Response<Unit>
     @GET("api/auth/users")
     suspend fun getUsers(): Response<List<Usuario>>
     @POST("api/auth/login")
@@ -26,5 +26,5 @@ interface AuthApi {
     suspend fun register(@Body request: RegisterRequest): Response<String>
 
     @PUT("api/auth/recover")
-    suspend fun recoverPassword(@Body request: RecoverRequest): Response<String>
+    suspend fun recoverPassword(@Body request: RecoverRequest): Response<Unit>
 }

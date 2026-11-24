@@ -183,7 +183,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.authApi.recoverPassword(RecoverRequest(correo, nuevaContrasena))
-                onResult(response.isSuccessful)
+                if (response.isSuccessful) {
+                    cargarObservadores()
+                    onResult(true)
+                } else {
+                    onResult(false)
+                }
             } catch (e: Exception) {
                 onResult(false)
             }
