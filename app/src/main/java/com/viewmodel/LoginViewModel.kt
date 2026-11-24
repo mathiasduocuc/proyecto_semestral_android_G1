@@ -2,8 +2,9 @@ package com.viewmodel
 
 import android.app.Application
 import android.content.Context
-import androidx.compose.runtime.mutableStateOf
+import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -31,22 +32,24 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     private var usuarioActual: Usuario? = null
 
-    // Variable de estado para la lista de observadores
     var listaObservadores by mutableStateOf<List<Usuario>>(emptyList())
         private set
 
-    // Función para traer los datos desde Spring Boot
     fun cargarObservadores() {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.authApi.getUsers()
                 if (response.isSuccessful) {
                     val todosLosUsuarios = response.body() ?: emptyList()
-                    // CORREGIDO: Filtrar por "OBSERVADOR" (todo en mayúsculas)
+                    // Filtramos solo los observadores
                     listaObservadores = todosLosUsuarios.filter { it.rol == Rol.OBSERVADOR }
+                    Log.d("API_USERS", "Usuarios cargados: ${listaObservadores.size}")
+                } else {
+                    Log.e("API_USERS", "Error en la respuesta: ${response.code()}")
                 }
             } catch (e: Exception) {
-
+                // IMPORTANTE: Esto te dirá en el Logcat si Retrofit falló al leer el JSON
+                Log.e("API_USERS", "Fallo al cargar usuarios: ${e.message}", e)
             }
         }
     }
@@ -165,7 +168,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = RetrofitClient.authApi.register(RegisterRequest(correo, contrasena, "OBSERVADOR"))
                 if (response.isSuccessful) {
-                    // Si se crea en el servidor con éxito, recargamos la lista desde la BD
                     cargarObservadores()
                     onResult(true)
                 } else {
@@ -193,7 +195,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = RetrofitClient.authApi.deleteUser(correo)
                 if (response.isSuccessful) {
-                    // Si se borra en el servidor, recargamos la lista desde la BD
                     cargarObservadores()
                     onResult(true)
                 } else {
