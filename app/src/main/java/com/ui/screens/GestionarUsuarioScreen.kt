@@ -16,15 +16,17 @@ fun GestionarUsuarioScreen(
     viewModel: LoginViewModel,
     onVolver: () -> Unit
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.cargarObservadores()
+    }
+
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var modoEdicion by remember { mutableStateOf(false) }
     var mensajeError by remember { mutableStateOf("") }
-    var recargarLista by remember { mutableStateOf(false) }
 
-    val observadores = remember(recargarLista) {
-        viewModel.obtenerListaObservadores()
-    }
+
+    val observadores = viewModel.listaObservadores
 
     Column(
         modifier = Modifier
@@ -85,24 +87,20 @@ fun GestionarUsuarioScreen(
                             } else {
                                 mensajeError = "Procesando..."
                                 if (modoEdicion) {
-                                    // LLAMADA ASÍNCRONA AL BACKEND
                                     viewModel.modificarContrasenaObservador(correo, contrasena) { exito ->
                                         if (exito) {
                                             correo = ""; contrasena = ""
                                             modoEdicion = false
                                             mensajeError = ""
-                                            recargarLista = !recargarLista
                                         } else {
                                             mensajeError = "Error al modificar contraseña"
                                         }
                                     }
                                 } else {
-                                    // LLAMADA ASÍNCRONA AL BACKEND
                                     viewModel.crearNuevoObservador(correo, contrasena) { exito ->
                                         if (exito) {
                                             correo = ""; contrasena = ""
                                             mensajeError = ""
-                                            recargarLista = !recargarLista
                                         } else {
                                             mensajeError = "El correo ya está registrado en el servidor"
                                         }
@@ -169,9 +167,7 @@ fun GestionarUsuarioScreen(
                             TextButton(
                                 onClick = {
                                     viewModel.eliminarUsuario(usuario.correo) { exito ->
-                                        if (exito) {
-                                            recargarLista = !recargarLista //
-                                        } else {
+                                        if (!exito) {
                                             mensajeError = "No se pudo eliminar del servidor"
                                         }
                                     }

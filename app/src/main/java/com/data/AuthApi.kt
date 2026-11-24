@@ -1,5 +1,6 @@
 package com.data
 
+import com.model.Usuario
 import com.model.LoginRequest
 import com.model.LoginResponse
 import com.model.RegisterRequest
@@ -10,12 +11,14 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.DELETE
 import retrofit2.http.Path
+import retrofit2.http.GET
 
 interface AuthApi {
 
     @DELETE("api/auth/delete/{correo}")
     suspend fun deleteUser(@Path("correo") correo: String): Response<String>
-
+    @GET("api/auth/users")
+    suspend fun getUsers(): Response<List<Usuario>>
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 

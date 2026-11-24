@@ -2,6 +2,9 @@ package com.viewmodel
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.data.RetrofitClient
@@ -26,16 +29,27 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         Context.MODE_PRIVATE
     )
 
-    // Lista local para la pantalla de gestión (el backend no tiene endpoint para listar aún)
-    private val usuarios = mutableListOf<Usuario>(
-        Usuario(id = 1, nombre = "Observador", correo = "observador@rinconsur.cl", contrasena = "1234", rol = Rol.OBSERVADOR),
-        Usuario(id = 2, nombre = "Supervisor",
-            correo = "supervisor@rinconsur.cl",
-            contrasena = "1234",
-            rol = Rol.SUPERVISOR)
-    )
-
     private var usuarioActual: Usuario? = null
+
+    // Variable de estado para la lista de observadores
+    var listaObservadores by mutableStateOf<List<Usuario>>(emptyList())
+        private set
+
+    // Función para traer los datos desde Spring Boot
+    fun cargarObservadores() {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.authApi.getUsers()
+                if (response.isSuccessful) {
+                    val todosLosUsuarios = response.body() ?: emptyList()
+                    // CORREGIDO: Filtrar por "OBSERVADOR" (todo en mayúsculas)
+                    listaObservadores = todosLosUsuarios.filter { it.rol == Rol.OBSERVADOR }
+                }
+            } catch (e: Exception) {
+
+            }
+        }
+    }
 
     fun obtenerUsuarioActual(): Usuario? = usuarioActual
 
@@ -49,7 +63,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(contrasena = valor, errorContrasena = null, inicioExitoso = false, mensaje = "") }
     }
 
-    // --- LOGIN CONECTADO A SPRING BOOT ---
     fun iniciarSesion() {
         val estado = _uiState.value
         val correo = estado.usuario.trim()
@@ -92,7 +105,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- RECUPERAR CONTRASEÑA (PANTALLA LOGIN) ---
     fun recuperarContrasena(
         correo: String,
         nuevaContrasena: String,
@@ -105,13 +117,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
                 if (response.isSuccessful) {
-                    _uiState.update {
-                        it.copy(
-                            usuario = correo,
-                            contrasena = "",
-                            mensaje = "Contraseña actualizada"
-                        )
-                    }
+                    _uiState.update { it.copy(usuario = correo, contrasena = "", mensaje = "Contraseña actualizada") }
                     onResult(true, "Contraseña actualizada correctamente")
                 } else {
                     onResult(false, "Correo no encontrado en el servidor")
@@ -122,7 +128,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- CAMBIAR CONTRASEÑA (PANTALLA PERFIL) ---
     fun cambiarContrasena(
         contrasenaActual: String,
         nuevaContrasena: String,
@@ -141,11 +146,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                // Usamos el endpoint de recuperación para cambiar la clave en MySQL
                 val response = RetrofitClient.authApi.recoverPassword(
                     RecoverRequest(correo, nuevaContrasena)
                 )
-
                 if (response.isSuccessful) {
                     onResult(true, "Contrasena actualizada correctamente")
                 } else {
@@ -157,18 +160,13 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- GESTIÓN DE USUARIOS (PANTALLA SUPERVISOR) ---
-    fun obtenerListaObservadores(): List<Usuario> {
-        return usuarios.filter { it.rol == Rol.OBSERVADOR }
-    }
-
     fun crearNuevoObservador(correo: String, contrasena: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.authApi.register(RegisterRequest(correo, contrasena, "OBSERVADOR"))
                 if (response.isSuccessful) {
-                    val nuevoId = (usuarios.maxOfOrNull { it.id } ?: 0) + 1
-                    usuarios.add(Usuario(id = nuevoId, nombre = "Observador Nuevo", correo = correo, contrasena = "", rol = Rol.OBSERVADOR))
+                    // Si se crea en el servidor con éxito, recargamos la lista desde la BD
+                    cargarObservadores()
                     onResult(true)
                 } else {
                     onResult(false)
@@ -193,15 +191,10 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     fun eliminarUsuario(correo: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                // Llamamos al endpoint DELETE de Spring Boot
                 val response = RetrofitClient.authApi.deleteUser(correo)
-
                 if (response.isSuccessful) {
-                    // Si el servidor lo borró, lo borramos de la lista local
-                    val indice = usuarios.indexOfFirst { it.correo.equals(correo, ignoreCase = true) }
-                    if (indice != -1) {
-                        usuarios.removeAt(indice)
-                    }
+                    // Si se borra en el servidor, recargamos la lista desde la BD
+                    cargarObservadores()
                     onResult(true)
                 } else {
                     onResult(false)
