@@ -20,6 +20,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,7 +54,11 @@ fun LoginScreen(
     var mensajeRecuperacion by remember { mutableStateOf("") }
     var recuperacionExitosa by remember { mutableStateOf(false) }
 
-
+    LaunchedEffect(estado.inicioExitoso) {
+        if (estado.inicioExitoso) {
+            onLoginExitoso()
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -191,15 +196,7 @@ fun LoginScreen(
 
                     TextButton(
                         onClick = {
-
-                            mostrarRecuperacion = true
-
-                            correoRecuperacion = estado.usuario
-
-                            nuevaContrasena = ""
-                            confirmarContrasena = ""
-                            mensajeRecuperacion = ""
-                            recuperacionExitosa = false
+                            viewModel.iniciarSesion()
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
