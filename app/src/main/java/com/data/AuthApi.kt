@@ -23,7 +23,7 @@ interface AuthApi {
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     @POST("api/auth/register")
-    suspend fun register(@Body request: RegisterRequest): Response<String>
+    suspend fun register(@Body request: RegisterRequest): Response<Unit>
 
     @PUT("api/auth/recover")
     suspend fun recoverPassword(@Body request: RecoverRequest): Response<Unit>

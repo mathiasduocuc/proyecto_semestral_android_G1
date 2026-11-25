@@ -50,7 +50,10 @@ fun GestionarUsuarioScreen(
 
                 OutlinedTextField(
                     value = correo,
-                    onValueChange = { correo = it },
+                    onValueChange = {
+                        correo = it
+                        mensajeError = ""
+                    },
                     label = { Text("Correo") },
                     enabled = !modoEdicion,
                     modifier = Modifier.fillMaxWidth()
@@ -59,7 +62,10 @@ fun GestionarUsuarioScreen(
 
                 OutlinedTextField(
                     value = contrasena,
-                    onValueChange = { contrasena = it },
+                    onValueChange = {
+                        contrasena = it
+                        mensajeError = ""
+                        },
                     label = { Text("Contraseña") },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
