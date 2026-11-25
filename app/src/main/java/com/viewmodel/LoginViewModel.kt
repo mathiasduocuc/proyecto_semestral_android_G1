@@ -41,7 +41,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val response = RetrofitClient.authApi.getUsers()
                 if (response.isSuccessful) {
                     val todosLosUsuarios = response.body() ?: emptyList()
-                    // Filtramos solo los observadores
                     listaObservadores = todosLosUsuarios.filter { it.rol == Rol.OBSERVADOR }
                     Log.d("API_USERS", "Usuarios cargados: ${listaObservadores.size}")
                 } else {
@@ -190,6 +189,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     onResult(false)
                 }
             } catch (e: Exception) {
+                cargarObservadores() // <-- Forzar recarga incluso si hay error de lectura
                 onResult(false)
             }
         }
@@ -206,6 +206,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     onResult(false)
                 }
             } catch (e: Exception) {
+                cargarObservadores() // <-- Forzar recarga incluso si hay error de lectura
                 onResult(false)
             }
         }
